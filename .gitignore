@@ -1,0 +1,8 @@
+.DS_Store
+
+.env
+# IDE
+/.idea/
+/.vscode/
+**/__pycache__/
+backend/app/images/
