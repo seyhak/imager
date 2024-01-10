@@ -1,0 +1,15 @@
+FROM python:3.12-alpine
+
+WORKDIR /usr/src/app
+
+RUN pip install --no-cache-dir pip install black isort autoflake
+
+COPY . .
+
+# RUN [ "autoflake", "* -r --remove-all-unused-imports --remove-unused-variables --quiet -i"]
+# autoflake * -r \--remove-all-unused-imports --remove-unused-variables --quiet -i
+# isort .
+# black .
+# RUN [ "isort", "."]
+# RUN [ "black", "."]
+CMD [ "python"]

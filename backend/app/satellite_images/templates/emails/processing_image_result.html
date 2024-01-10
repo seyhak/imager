@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Completed</title>
+</head>
+<body style="font-family: 'Helvetica', 'Arial', sans-serif;">
+
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4;">
+
+        <h2 style="color: #333333;">Task Completed</h2>
+
+        <p style="color: #666666;">Dear {{ recipient }},</p>
+
+        <p style="color: #666666;">We're {{ mood }} to inform you that the task has been <strong>{{ status }}</strong> completed. Here are the details:</p>
+
+        <ul style="color: #666666;">
+            <li><strong>Image processed:</strong> {{ image_name }}</li>
+            <li><strong>Date Completed:</strong> {{ completed_at }}</li>
+        </ul>
+
+        <p style="color: #666666;">Cheers Love!</p>
+
+        <p style="color: #666666;">Best regards, always Yours, <br>Big Good Tech Corp</p>
+
+    </div>
+
+</body>
+</html>
