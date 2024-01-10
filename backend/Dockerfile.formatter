@@ -10,6 +10,4 @@ COPY . .
 # autoflake * -r \--remove-all-unused-imports --remove-unused-variables --quiet -i
 # isort .
 # black .
-# RUN [ "isort", "."]
-# RUN [ "black", "."]
 CMD [ "python"]
