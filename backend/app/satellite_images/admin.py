@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db import transaction
 
 from .models import SatelliteImage
 from .services import SatelliteImageService
@@ -12,7 +13,7 @@ class SatelliteImageAdmin(admin.ModelAdmin):
         "uploader__username",
         "title",
     ]
-    ordering = ["created_at"]
+    ordering = ["-created_at"]
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
@@ -20,6 +21,9 @@ class SatelliteImageAdmin(admin.ModelAdmin):
         return ["title", "uploader", "status"]
 
     def save_model(self, request, obj, form, change):
+        """
+        Save model, if it is created run processing task.
+        """
         if not change:
             obj.title = form.files["image"].name
             obj.uploader = request.user
@@ -30,4 +34,4 @@ class SatelliteImageAdmin(admin.ModelAdmin):
             service = SatelliteImageService(
                 obj.id, image_path, obj.title, obj.uploader.email
             )
-            service.handle_service()
+            transaction.on_commit(service.handle_service)

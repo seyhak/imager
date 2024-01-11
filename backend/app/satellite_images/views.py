@@ -14,10 +14,6 @@ class SatelliteImageViewSet(
     queryset = SatelliteImage.objects.all()
     serializer_class = SatelliteImageSerializer
 
-    def get_queryset(self):
-        qs = super().get_queryset().filter(uploader=self.request.user)
-        return qs
-
     def _get_details(self, list_of_ids):
         """
         Get data related with PG SatelliteImage from mongoDB.
@@ -28,7 +24,7 @@ class SatelliteImageViewSet(
         satellite_images = dbname[SatelliteImage.MONGO_COLLECTION_NAME]
 
         all_details = satellite_images.find(
-            {"satellite_image_id": {"$in": list_of_ids}}
+            {"satellite_image_id": {"$in": list_of_ids}}, {"_id": False}
         )
         details = {
             i["satellite_image_id"]: i
