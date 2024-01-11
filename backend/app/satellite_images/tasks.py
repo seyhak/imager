@@ -1,7 +1,6 @@
 import logging
 import os
 
-from celery.exceptions import CeleryError
 from commons.models import StatusEnum
 from commons.mongo import get_mongo_db_client
 from django.core.mail import send_mail
@@ -9,9 +8,8 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from PIL import Image
 from PIL.ExifTags import TAGS
-from pymongo.errors import PyMongoError
 
-from celery import chain, shared_task
+from celery import shared_task
 
 from .models import SatelliteImage
 
@@ -84,32 +82,25 @@ class SatelliteImageProcessStatusEmailSender:
 
 class SatelliteImageDataToMongoSaver:
     """
-    Handle Saving SatelliteImageData details to mongodb.
+    Handle Saving SatelliteImage details to mongodb.
     """
 
     def __init__(self, data):
         self.data = data
         self.client = None
 
-    def _remove_documents_of_image_if_already_exist(self):
-        """
-        make sure only one document with id exists
-        """
-        dbname = self.client[SatelliteImage.MONGO_DB_NAME]
-        satellite_images = dbname[SatelliteImage.MONGO_COLLECTION_NAME]
-
-        satellite_images.delete_many(
-            {"satellite_image_id": self.data["satellite_image_id"]}
-        )
-
     def _put_data_into_mongo(self):
         dbname = self.client[SatelliteImage.MONGO_DB_NAME]
         satellite_images = dbname[SatelliteImage.MONGO_COLLECTION_NAME]
+
+        # make sure only one document with satellite_image_id exists
+        satellite_images.delete_many(
+            {"satellite_image_id": self.data["satellite_image_id"]}
+        )
         satellite_images.insert_one(self.data)
 
     def save_satellite_image_data(self):
         self.client = get_mongo_db_client()
-        self._remove_documents_of_image_if_already_exist()
         self._put_data_into_mongo()
         self.client.close()
 
@@ -122,7 +113,7 @@ class SatelliteImageProcessor:
 
     def _process_exifdata(self, exifdata):
         """
-        Exif is ugly and not human readable. It needs to be processed
+        Exif is ugly and not human readable. It needs to be processed.
         """
         result = {}
         for tag_id in exifdata:
@@ -177,7 +168,6 @@ def send_email_notification(status, recipient_email, image_name):
 @shared_task
 def process_satellite_image(image_path):
     logger.info("Processing image {image_path}")
-
     processor = SatelliteImageProcessor(image_path)
     return processor.get_processed_satellite_image_data()
 
@@ -198,33 +188,3 @@ def set_satellite_image_status(status, satellite_image_id):
 
     obj = SatelliteImage.objects.get(id=satellite_image_id)
     obj.set_status(status)
-
-
-@shared_task
-def handle_processing_satellite_image_service(
-    satellite_image_id,
-    image_path,
-    image_name,
-    uploader_email,
-):
-    # return set_satellite_image_status.delay(
-    #     StatusEnum.FAILED.value, satellite_image_id
-    # )
-    # return save_satellite_image_data_to_mongo({"abc": 123}, satellite_image_id)
-    try:
-        handler = chain(
-            process_satellite_image.s(image_path)
-            | save_satellite_image_data_to_mongo.s(satellite_image_id)
-            | send_email_notification.s(uploader_email, image_name)
-            | set_satellite_image_status.s(satellite_image_id)
-        )
-        handler()
-    except (CeleryError, PyMongoError) as exc:
-        logger.error(f"Error during task execution: {exc}")
-        handler = chain(
-            send_email_notification.s(
-                StatusEnum.FAILED.value, uploader_email, image_name
-            )
-            | set_satellite_image_status.s(satellite_image_id)
-        )
-        handler()

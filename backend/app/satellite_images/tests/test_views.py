@@ -12,30 +12,22 @@ class TestSatelliteImageViewSet(APITestCase):
         self.user = UserFactory()
         self.client.force_login(self.user)
 
-    def test_menu_list_returns_only_users_data(self):
-        SatelliteImageFactory()
-        SatelliteImageFactory(uploader=self.user)
-        SatelliteImageFactory(uploader=self.user)
-        url = reverse("satellite_images:satellite_images-list")
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
-
     @mock.patch("satellite_images.views.SatelliteImageViewSet._get_details")
     def test_menu_list_returns_only_users_data_with_mongo_data(self, mock_get_details):
-        SatelliteImageFactory()
+        not_users_img = SatelliteImageFactory()
         img1 = SatelliteImageFactory(uploader=self.user)
         img2 = SatelliteImageFactory(uploader=self.user)
 
         mock_get_details.return_value = {
+            str(not_users_img.id): {
+                "some_property": 456,
+                "satellite_image_id": str(not_users_img.id),
+            },
             str(img1.id): {
-                "_id": "659f03322736e6f85c8c8498",
                 "abc": 123,
                 "satellite_image_id": str(img1.id),
             },
             str(img2.id): {
-                "_id": "659f05fd754afe7dcdcc431b",
                 "width": 600,
                 "height": 600,
                 "format": "PNG",
@@ -46,17 +38,28 @@ class TestSatelliteImageViewSet(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 3)
         self.assertEqual(
             response.data,
             [
+                {
+                    "id": str(not_users_img.id),
+                    "title": not_users_img.title,
+                    "created_at": not_users_img.created_at.strftime(
+                        "%Y-%m-%dT%H:%M:%S.%fZ"
+                    ),
+                    "status": not_users_img.status,
+                    "processing_data": {
+                        "some_property": 456,
+                        "satellite_image_id": str(not_users_img.id),
+                    },
+                },
                 {
                     "id": str(img1.id),
                     "title": img1.title,
                     "created_at": img1.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "status": img1.status,
                     "processing_data": {
-                        "_id": "659f03322736e6f85c8c8498",
                         "abc": 123,
                         "satellite_image_id": str(img1.id),
                     },
@@ -67,7 +70,6 @@ class TestSatelliteImageViewSet(APITestCase):
                     "created_at": img2.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "status": img2.status,
                     "processing_data": {
-                        "_id": "659f05fd754afe7dcdcc431b",
                         "width": 600,
                         "height": 600,
                         "format": "PNG",
