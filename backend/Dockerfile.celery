@@ -9,8 +9,5 @@ WORKDIR /usr/src/app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy your Celery application code
-COPY celery/ .
-
 # Entry point
 CMD ["celery", "-A", "app", "worker", "--loglevel=info"]
